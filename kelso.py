@@ -1,9 +1,14 @@
 import json
 from watson_developer_cloud import NaturalLanguageUnderstandingV1
-import watson_developer_cloud.natural_language_understanding.features.v1 as \
-    Features
+import watson_developer_cloud.natural_language_understanding.features.v1 as Features
 import tweepy
 from tweepy.api import API
+import random
+
+kelsoChoices = ['making a deal', 'waiting and cooling off', 'going to another game', 'talking it out', 'sharing and taking turns', 'ignoring it', 'walking away', 'telling them to stop', 'apologizing']
+openings = ['Consider', 'Try', 'I\'d suggest', 'I\'d recommend', 'How about']
+start = ['Whoa!', 'Yikes!', 'Darn.']
+conflictStatement = ['Don\'t get so angry at', 'It looks like you have a problem with', 'It looks like you have a conflict with', 'You\'re getting pretty mad at']
 
 class MyStreamListener(tweepy.StreamListener):
 
@@ -15,13 +20,12 @@ class MyStreamListener(tweepy.StreamListener):
 def getReply(text):
 
     global kelsoReady
-
     try:
         response = natural_language_understanding.analyze(
         text= text,
         features=[Features.Keywords(emotion=True)])
     except:
-        print("watson had a problem that's not too big. we'll ignore it and move on")
+        print("Watson had trouble analyzing : {}".format(text))
         kelsoReady = True
         return ""
 
@@ -32,14 +36,21 @@ def getReply(text):
             if response['keywords'][0]['emotion']['anger'] > 0.25:
                 target = [response['keywords'][0]['text']]
 
-                response = natural_language_understanding.analyze(
-                text= text,
-                features=[Features.Sentiment(targets = target)])
+                try:
+                    response = natural_language_understanding.analyze(
+                    text= text,
+                    features=[Features.Sentiment(targets = target)])
+                except:
+                    print("Watson had trouble analyzing : {}".format(text))
+                    kelsoReady = True
+                    return ""
 
                 #if the anger is directed towards the keyword
                 if (response['sentiment']['targets'][0]['score'] < -0.5):
+                    with open('tweetFile.txt', 'a', encoding="utf-8") as tweetFile:
+                        tweetFile.write(text)
                     kelsoReady = True
-                    return "please stop being so mean to {}".format(response['sentiment']['targets'][0]['text'])
+                    return response['sentiment']['targets'][0]['text']
     kelsoReady = True
     return ""
 
@@ -75,18 +86,17 @@ while True:
     if len(unworkedTweets) > 0 and  kelsoReady:
         kelsoReady = False
         wheresKelso += 1
-        try:
-            reply = getReply(unworkedTweets[wheresKelso].text)
 
-        except:
-            print("watson had a problem that was kinda big.. if we pretend it didn't happen it might go away")
+        reply = getReply(unworkedTweets[wheresKelso].text)
         
-    if len(reply) > 1 and retweeted is not None and not retweeted:
+        retweeted = unworkedTweets[wheresKelso].retweeted
+
+        if len(reply) > 1 and retweeted is not None and not retweeted:
             screenName = unworkedTweets[wheresKelso].user.screen_name
-            temp = "@{} ".format(screenName)
-            reply = temp + reply
+            screenName = "@{} ".format(screenName)
+            reply = "{} {} {} {}. {} {}. #kelsowheel".format(screenName, random.choice(start), random.choice(conflictStatement), reply, random.choice(openings), random.choice(kelsoChoices)) 
             print(reply)
-            tweetId = unworkedTweets[wheresKelso].id_str
-            print(tweetId)
-            #api.update_status(status=reply, in_reply_to_status_id=tweetId)
-            print("sent a tweet")
+            if len(reply) < 150:
+                tweetId = unworkedTweets[wheresKelso].id_str
+                api.update_status(status=reply, in_reply_to_status_id=tweetId)
+                print("sent a tweet")
