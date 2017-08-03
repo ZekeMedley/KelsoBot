@@ -4,6 +4,17 @@ import watson_developer_cloud.natural_language_understanding.features.v1 as Feat
 import tweepy
 from tweepy.api import API
 import random
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+	return 'Hello World!'
+
+port = os.getenv('VCAP_APP_PORT', '8080')
+if __name__ == "__main__":
+	app.run(host='0.0.0.0', port=int(port))
 
 kelsoChoices = ['making a deal', 'waiting and cooling off', 'going to another game', 'talking it out', 'sharing and taking turns', 'ignoring it', 'walking away', 'telling them to stop', 'apologizing']
 openings = ['Consider', 'Try', 'I\'d suggest', 'I\'d recommend', 'How about']
