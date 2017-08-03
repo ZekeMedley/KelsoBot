@@ -81,12 +81,12 @@ while True:
         except:
             print("watson had a problem that was kinda big.. if we pretend it didn't happen it might go away")
         
-
-        if len(reply) > 1:
+    if len(reply) > 1 and retweeted is not None and not retweeted:
             screenName = unworkedTweets[wheresKelso].user.screen_name
             temp = "@{} ".format(screenName)
             reply = temp + reply
             print(reply)
             tweetId = unworkedTweets[wheresKelso].id_str
-            api.update_status(status=reply, in_reply_to_status_id=tweetId)
+            print(tweetId)
+            #api.update_status(status=reply, in_reply_to_status_id=tweetId)
             print("sent a tweet")
