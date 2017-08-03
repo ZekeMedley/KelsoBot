@@ -9,6 +9,7 @@ import re
 
 print("Running Kelso Bot")
 
+#lists of sentance parts that Kelso uses to make a tweet
 kelsoChoices = ['making a deal', 'waiting and cooling off', 'going to another game', 'talking it out', 'sharing and taking turns', 'ignoring it', 'walking away', 'telling them to stop', 'apologizing']
 openings = ['Consider', 'Try', 'I\'d suggest', 'I\'d recommend', 'How about']
 start = ['Whoa!', 'Yikes!', 'Darn.']
@@ -17,12 +18,11 @@ conflictStatement = ['Don\'t get so angry at', 'It looks like you have a problem
 class MyStreamListener(tweepy.StreamListener):
 
     global unworkedTweets
-
+    #when we get a status we take it and add it to the tweet buffer
     def on_status(self, status):
         unworkedTweets.append(status)
 
 def getReply(text):
-
     global kelsoReady
     try:
         response = natural_language_understanding.analyze(
@@ -37,7 +37,7 @@ def getReply(text):
     if len(response['keywords']):
         # if there is a strong anger in the text
         if 'emotion' in response['keywords'][0].keys():
-            if response['keywords'][0]['emotion']['anger'] > 0.4:
+            if response['keywords'][0]['emotion']['anger'] > 0.6:
                 target = [response['keywords'][0]['text']]
 
                 try:
@@ -50,7 +50,7 @@ def getReply(text):
                     return ""
 
                 #if the anger is directed towards the keyword
-                if (response['sentiment']['targets'][0]['score'] < -0.5):
+                if (response['sentiment']['targets'][0]['score'] < -0.6):
                     with open('tweetFile.txt', 'a', encoding="utf-8") as tweetFile:
                         tweetFile.write(text)
                     kelsoReady = True
@@ -78,6 +78,7 @@ unworkedTweets = []
 
 myStream.filter(track=['Trump', 'healthcare', 'GOP', 'Dems', 'snowflake'], async = True)
 
+# start at -1 so first +1 doesn't make us miss first tweet
 wheresKelso = -1
 kelsoReady = True
 
@@ -93,6 +94,7 @@ while True:
 
         reply = getReply(unworkedTweets[wheresKelso].text)       
 
+        # we made a reply, and the tweet is not a retweet
         if len(reply) > 1 and not unworkedTweets[wheresKelso].retweeted and 'RT @' not in unworkedTweets[wheresKelso].text:
             screenName = unworkedTweets[wheresKelso].user.screen_name
             screenName = "@{} ".format(screenName)
@@ -101,13 +103,15 @@ while True:
             for url in urls:
                 reply = reply.replace(url, "")
             print(reply)
-
-            if len(reply) < 150:
+            
+            # if the reply does not excede the twitter character limit
+            if len(reply) < 151:
                 tweetId = unworkedTweets[wheresKelso].id_str
                 api.update_status(status=reply, in_reply_to_status_id=tweetId)
                 print("sent a tweet")
                 myStream.disconnect()
-                print("sleep")
-                time.sleep(60)
+                print("sleeping")
+                #wait 10 minutes before moving on to the next tweet.
+                time.sleep(600)
                 print("slept")
                 myStream.filter(track=['Trump', 'healthcare', 'GOP', 'Dems', 'snowflake'], async = True)
