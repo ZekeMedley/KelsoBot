@@ -12,7 +12,7 @@ port = int(os.getenv('VCAP_APP_PORT', 8080))
 
 def hello_world():
     print("CHECKING STREAM")
-    checkp = subprocess.Popen("ps -ef | grep -i 'runKelso.py'", shell=True, stdout=subprocess.PIPE)
+    checkp = subprocess.Popen("ps -ef | grep -i 'KelsoBot.py'", shell=True, stdout=subprocess.PIPE)
     (output, us) =  checkp.communicate()
     if "python" not in str(output) and "Python" not in str(output):
         print("TWITTER: Starting stream program")
